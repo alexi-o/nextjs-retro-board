@@ -14,11 +14,16 @@ interface PollData {
   options: string[];
 }
 
+interface VoteData {
+  option: string;
+}
+
 const Poll: React.FC<PollProps> = ({ retrospectiveId, step }) => {
   const [poll, setPoll] = useState<PollData | null>(null);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [hasVoted, setHasVoted] = useState<boolean>(false);
+  const [votes, setVotes] = useState<VoteData[]>([]);
   const supabase = createClient();
 
   useEffect(() => {
@@ -39,6 +44,18 @@ const Poll: React.FC<PollProps> = ({ retrospectiveId, step }) => {
       }
     };
 
+    const fetchVotes = async () => {
+      if (!poll) return;
+
+      const { data: votesData } = await supabase
+        .from("votes")
+        .select("*")
+        .eq("item_id", poll.id)
+        .eq("type", "poll");
+
+      setVotes(votesData || []);
+    };
+
     const checkIfVoted = async () => {
       if (!userId || !poll) return;
       const { data } = await supabase
@@ -55,7 +72,10 @@ const Poll: React.FC<PollProps> = ({ retrospectiveId, step }) => {
     };
 
     fetchUser();
-    fetchPoll().then(checkIfVoted);
+    fetchPoll().then(() => {
+      fetchVotes();
+      checkIfVoted();
+    });
   }, [retrospectiveId, poll?.id, userId, supabase]);
 
   const handleVote = async () => {
@@ -72,8 +92,29 @@ const Poll: React.FC<PollProps> = ({ retrospectiveId, step }) => {
 
     if (!error) {
       setHasVoted(true);
+      setVotes([...votes, { option: selectedOption }]);
     }
   };
+
+  const handleDeleteVote = async () => {
+    if (!userId || !poll) return;
+
+    const { error } = await supabase
+      .from("votes")
+      .delete()
+      .eq("item_id", poll.id)
+      .eq("user_id", userId)
+      .eq("type", "poll");
+
+    if (!error) {
+      setHasVoted(false);
+      setSelectedOption(null);
+      setVotes(votes.filter((vote) => vote.option !== selectedOption));
+    }
+  };
+
+  const getVoteCount = (option: string) =>
+    votes.filter((vote) => vote.option === option).length;
 
   if (!poll) return <div>Loading...</div>;
 
@@ -106,14 +147,38 @@ const Poll: React.FC<PollProps> = ({ retrospectiveId, step }) => {
             </button>
           </div>
         )}
-        {hasVoted && (
+
+        {hasVoted && step === "reflect" && (
           <div>
             <p>Thank you for voting!</p>
+            <ul className="mt-4 space-y-2">
+              {poll.options.map((option, index) => (
+                <li key={index} className="flex justify-between">
+                  <span>{option}</span>
+                  <span>{getVoteCount(option)} votes</span>
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={handleDeleteVote}
+              className="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
+            >
+              Vote Again
+            </button>
           </div>
         )}
+
         {step !== "reflect" && (
           <div>
             <p>The poll is now closed.</p>
+            <ul className="mt-4 space-y-2">
+              {poll.options.map((option, index) => (
+                <li key={index} className="flex justify-between">
+                  <span>{option}</span>
+                  <span>{getVoteCount(option)} votes</span>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </div>

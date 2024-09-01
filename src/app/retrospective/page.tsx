@@ -43,88 +43,26 @@ export default function RetrospectivePage() {
       <div className="flex-1 container mx-auto p-4">
         <h1 className="text-2xl font-bold mb-8">{retrospective.title}</h1>
 
-        {currentStep === "reflect" && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="h-full">
-              <Poll retrospectiveId={retrospectiveId} step="reflect" />
-            </div>
-            <ReflectColumn
-              sentiment="Glad"
-              retrospectiveId={retrospectiveId}
-              step="reflect"
-            />
-            <ReflectColumn
-              sentiment="Mad"
-              retrospectiveId={retrospectiveId}
-              step="reflect"
-            />
-            <ReflectColumn
-              sentiment="Bad"
-              retrospectiveId={retrospectiveId}
-              step="reflect"
-            />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="h-full">
+            <Poll retrospectiveId={retrospectiveId} step={currentStep} />
           </div>
-        )}
-
-        {currentStep === "group" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-full">
-            <ReflectColumn
-              sentiment="Glad"
-              retrospectiveId={retrospectiveId}
-              step="group"
-            />
-            <ReflectColumn
-              sentiment="Mad"
-              retrospectiveId={retrospectiveId}
-              step="group"
-            />
-            <ReflectColumn
-              sentiment="Bad"
-              retrospectiveId={retrospectiveId}
-              step="group"
-            />
-          </div>
-        )}
-
-        {currentStep === "vote" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-full">
-            <ReflectColumn
-              sentiment="Glad"
-              retrospectiveId={retrospectiveId}
-              step="vote"
-            />
-            <ReflectColumn
-              sentiment="Mad"
-              retrospectiveId={retrospectiveId}
-              step="vote"
-            />
-            <ReflectColumn
-              sentiment="Bad"
-              retrospectiveId={retrospectiveId}
-              step="vote"
-            />
-          </div>
-        )}
-
-        {currentStep === "discuss" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-full">
-            <ReflectColumn
-              sentiment="Glad"
-              retrospectiveId={retrospectiveId}
-              step="discuss"
-            />
-            <ReflectColumn
-              sentiment="Mad"
-              retrospectiveId={retrospectiveId}
-              step="discuss"
-            />
-            <ReflectColumn
-              sentiment="Bad"
-              retrospectiveId={retrospectiveId}
-              step="discuss"
-            />
-          </div>
-        )}
+          <ReflectColumn
+            sentiment="Glad"
+            retrospectiveId={retrospectiveId}
+            step="reflect"
+          />
+          <ReflectColumn
+            sentiment="Mad"
+            retrospectiveId={retrospectiveId}
+            step="reflect"
+          />
+          <ReflectColumn
+            sentiment="Bad"
+            retrospectiveId={retrospectiveId}
+            step="reflect"
+          />
+        </div>
       </div>
     </div>
   );
