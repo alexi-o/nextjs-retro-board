@@ -5,7 +5,7 @@ import Popover from "@mui/material/Popover";
 import IconButton from "@mui/material/IconButton";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 
-const ReflectColumn = ({ sentiment, retrospectiveId, step }) => {
+const ReflectColumn = ({ sentiment, emoji, retrospectiveId, step }) => {
   const [reflections, setReflections] = useState([]);
   const [userId, setUserId] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -72,11 +72,27 @@ const ReflectColumn = ({ sentiment, retrospectiveId, step }) => {
 
   const open = Boolean(anchorEl);
 
+  const getSubheading = (sentiment) => {
+    switch (sentiment) {
+      case "Glad":
+        return "Positive experiences";
+      case "Bad":
+        return "Negative experiences";
+      case "Mad":
+        return "Frustrations & challenges";
+      default:
+        return "";
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-800 shadow-md rounded-lg p-4 dark:text-white">
-      <h2 className="text-xl font-bold mb-4 text-center text-gray-900 dark:text-gray-100">
-        {sentiment}
+      <h2 className="text-xl font-bold text-left text-gray-900 dark:text-gray-100">
+        {emoji} {sentiment}
       </h2>
+      <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-4">
+        {getSubheading(sentiment)}
+      </h3>
       <ul className="flex-grow mb-4 space-y-2 overflow-y-auto">
         {reflections.map((reflection) => (
           <li

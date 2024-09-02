@@ -45,22 +45,25 @@ export default function RetrospectivePage() {
         retrospectiveTitle={retrospective.title}
       />
       <div className="flex-1 container mx-auto p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
           <div className="h-full">
             <Poll retrospectiveId={retrospectiveId} step={currentStep} />
           </div>
           <ReflectColumn
             sentiment="Glad"
-            retrospectiveId={retrospectiveId}
-            step="reflect"
-          />
-          <ReflectColumn
-            sentiment="Mad"
+            emoji="😊"
             retrospectiveId={retrospectiveId}
             step="reflect"
           />
           <ReflectColumn
             sentiment="Bad"
+            emoji="😢"
+            retrospectiveId={retrospectiveId}
+            step="reflect"
+          />
+          <ReflectColumn
+            sentiment="Mad"
+            emoji="😡"
             retrospectiveId={retrospectiveId}
             step="reflect"
           />
