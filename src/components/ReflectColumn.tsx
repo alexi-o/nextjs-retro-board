@@ -18,6 +18,7 @@ const ReflectColumn = ({ sentiment, emoji, retrospectiveId, step }) => {
   const [emojiPickerAnchorEl, setEmojiPickerAnchorEl] = useState(null);
   const supabase = createClient();
 
+  // Fetch the current user
   useEffect(() => {
     const fetchUser = async () => {
       const { data } = await supabase.auth.getUser();
@@ -26,24 +27,55 @@ const ReflectColumn = ({ sentiment, emoji, retrospectiveId, step }) => {
     fetchUser();
   }, [supabase]);
 
+  const fetchVotes = async (reflectionIds) => {
+    const { data: votesData, error: votesError } = await supabase.rpc(
+      "fetch_votes_by_reflection_ids",
+      {
+        reflection_ids: reflectionIds,
+      }
+    );
+
+    if (votesError) {
+      console.error("Error fetching votes:", votesError);
+      return {};
+    }
+
+    const votesByReflection = votesData.reduce((acc, vote) => {
+      if (!acc[vote.item_id]) {
+        acc[vote.item_id] = {};
+      }
+      acc[vote.item_id][vote.emoji] = vote.count;
+      return acc;
+    }, {});
+
+    return votesByReflection;
+  };
+
+  // Fetch reflections and initialize votes
+  const fetchReflections = async () => {
+    const { data: reflectionsData, error: reflectionsError } = await supabase
+      .from("reflections")
+      .select("*")
+      .eq("retrospective_id", retrospectiveId)
+      .eq("sentiment", sentiment);
+
+    if (reflectionsError) {
+      console.error("Error fetching reflections:", reflectionsError);
+      return;
+    }
+
+    setReflections(reflectionsData);
+
+    const reflectionIds = reflectionsData.map((reflection) => reflection.id);
+
+    // Fetch and set the votes
+    const votesByReflection = await fetchVotes(reflectionIds);
+    setVotes(votesByReflection);
+  };
+
   useEffect(() => {
-    const fetchReflections = async () => {
-      const { data } = await supabase
-        .from("reflections")
-        .select("*")
-        .eq("retrospective_id", retrospectiveId)
-        .eq("sentiment", sentiment);
-
-      setReflections(data);
-      const initialVotes = data.reduce((acc, reflection) => {
-        acc[reflection.id] = {};
-        return acc;
-      }, {});
-      setVotes(initialVotes);
-    };
-
     fetchReflections();
-  }, [retrospectiveId, sentiment, step]); // Ensure 'step' is included in the dependency array
+  }, [retrospectiveId, sentiment, step, supabase]);
 
   const handleAddReflection = async (e) => {
     e.preventDefault();
@@ -66,18 +98,30 @@ const ReflectColumn = ({ sentiment, emoji, retrospectiveId, step }) => {
       setSelectedGif(null);
       setIsDialogOpen(false);
       setShowGifPicker(false);
-      fetchReflections(); // Fetch reflections again after adding a new one
+      // Re-fetch reflections after adding a new one
+      fetchReflections();
     }
   };
 
-  const handleVote = (reflectionId, emoji) => {
-    setVotes((prevVotes) => ({
-      ...prevVotes,
-      [reflectionId]: {
-        ...prevVotes[reflectionId],
-        [emoji]: (prevVotes[reflectionId][emoji] || 0) + 1,
-      },
-    }));
+  const handleVote = async (reflectionId, emoji) => {
+    try {
+      const { error } = await supabase.from("votes").insert([
+        {
+          item_id: reflectionId,
+          emoji: emoji,
+          type: "reflection", // Make sure this column exists and has a default value or is provided
+        },
+      ]);
+
+      if (error) {
+        throw error;
+      }
+
+      // Re-fetch votes after casting a new one
+      fetchReflections();
+    } catch (error) {
+      console.error("Error casting vote:", error);
+    }
   };
 
   const handleClick = (event) => {
