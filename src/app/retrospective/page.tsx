@@ -38,15 +38,15 @@ export default function RetrospectivePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-400 text-white">
+    <div className="flex flex-col bg-gray-400 text-white">
       <Stepper
         currentStep={currentStep}
         onStepChange={setCurrentStep}
         retrospectiveTitle={retrospective.title}
       />
       <div className="flex-1 container mx-auto p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-          <div className="h-full">
+        <div className="grid h-screen grid-cols-1 md:grid-cols-4 gap-2">
+          <div className="">
             <Poll retrospectiveId={retrospectiveId} step={currentStep} />
           </div>
           <ReflectColumn

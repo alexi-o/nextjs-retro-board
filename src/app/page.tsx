@@ -40,7 +40,7 @@ export default function Home() {
   }
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-4  h-screen">
       <h1 className="text-4xl font-bold mb-8">Welcome to Retro Board</h1>
       <div className="space-y-4">
         <Link href="/new-retrospective" className="block text-blue-500">

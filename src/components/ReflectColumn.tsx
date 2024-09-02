@@ -4,7 +4,6 @@ import GifPicker from "@/components/GifPicker";
 import Popover from "@mui/material/Popover";
 import IconButton from "@mui/material/IconButton";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
-import EmojiPicker from "emoji-picker-react";
 
 const ReflectColumn = ({ sentiment, emoji, retrospectiveId, step }) => {
   const [reflections, setReflections] = useState([]);
@@ -14,8 +13,6 @@ const ReflectColumn = ({ sentiment, emoji, retrospectiveId, step }) => {
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [selectedGif, setSelectedGif] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
-  const [votes, setVotes] = useState({});
-  const [emojiPickerAnchorEl, setEmojiPickerAnchorEl] = useState(null);
   const supabase = createClient();
 
   // Fetch the current user
@@ -27,31 +24,6 @@ const ReflectColumn = ({ sentiment, emoji, retrospectiveId, step }) => {
     fetchUser();
   }, [supabase]);
 
-  const fetchVotes = async (reflectionIds) => {
-    const { data: votesData, error: votesError } = await supabase.rpc(
-      "fetch_votes_by_reflection_ids",
-      {
-        reflection_ids: reflectionIds,
-      }
-    );
-
-    if (votesError) {
-      console.error("Error fetching votes:", votesError);
-      return {};
-    }
-
-    const votesByReflection = votesData.reduce((acc, vote) => {
-      if (!acc[vote.item_id]) {
-        acc[vote.item_id] = {};
-      }
-      acc[vote.item_id][vote.emoji] = vote.count;
-      return acc;
-    }, {});
-
-    return votesByReflection;
-  };
-
-  // Fetch reflections and initialize votes
   const fetchReflections = async () => {
     const { data: reflectionsData, error: reflectionsError } = await supabase
       .from("reflections")
@@ -65,12 +37,6 @@ const ReflectColumn = ({ sentiment, emoji, retrospectiveId, step }) => {
     }
 
     setReflections(reflectionsData);
-
-    const reflectionIds = reflectionsData.map((reflection) => reflection.id);
-
-    // Fetch and set the votes
-    const votesByReflection = await fetchVotes(reflectionIds);
-    setVotes(votesByReflection);
   };
 
   useEffect(() => {
@@ -98,29 +64,7 @@ const ReflectColumn = ({ sentiment, emoji, retrospectiveId, step }) => {
       setSelectedGif(null);
       setIsDialogOpen(false);
       setShowGifPicker(false);
-      // Re-fetch reflections after adding a new one
       fetchReflections();
-    }
-  };
-
-  const handleVote = async (reflectionId, emoji) => {
-    try {
-      const { error } = await supabase.from("votes").insert([
-        {
-          item_id: reflectionId,
-          emoji: emoji,
-          type: "reflection", // Make sure this column exists and has a default value or is provided
-        },
-      ]);
-
-      if (error) {
-        throw error;
-      }
-
-      // Re-fetch votes after casting a new one
-      fetchReflections();
-    } catch (error) {
-      console.error("Error casting vote:", error);
     }
   };
 
@@ -132,21 +76,7 @@ const ReflectColumn = ({ sentiment, emoji, retrospectiveId, step }) => {
     setAnchorEl(null);
   };
 
-  const handleEmojiPickerClick = (event) => {
-    setEmojiPickerAnchorEl(event.currentTarget);
-  };
-
-  const handleEmojiPickerClose = () => {
-    setEmojiPickerAnchorEl(null);
-  };
-
-  const addNewEmoji = (reflectionId, emoji) => {
-    handleVote(reflectionId, emoji.emoji);
-    handleEmojiPickerClose();
-  };
-
   const open = Boolean(anchorEl);
-  const openEmojiPicker = Boolean(emojiPickerAnchorEl);
 
   const getSubheading = (sentiment) => {
     switch (sentiment) {
@@ -162,7 +92,7 @@ const ReflectColumn = ({ sentiment, emoji, retrospectiveId, step }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-800 shadow-md rounded-lg p-4 dark:text-white">
+    <div className="flex h-screen flex-col bg-white dark:bg-gray-800 shadow-md rounded-lg p-4 dark:text-white">
       <h2 className="text-xl font-bold text-left text-gray-900 dark:text-gray-100">
         {emoji} {sentiment}
       </h2>
@@ -184,55 +114,6 @@ const ReflectColumn = ({ sentiment, emoji, retrospectiveId, step }) => {
                     alt="GIF"
                     className="mt-2 rounded"
                   />
-                )}
-                {step === "vote" && (
-                  <div className="flex items-center space-x-2 mt-2">
-                    {Object.keys(votes[reflection.id] || {}).map((emoji) => (
-                      <button
-                        key={emoji}
-                        onClick={() => handleVote(reflection.id, emoji)}
-                        className="text-lg"
-                      >
-                        {emoji} {votes[reflection.id][emoji]}
-                      </button>
-                    ))}
-                    <button
-                      onClick={(event) =>
-                        handleEmojiPickerClick(event, reflection.id)
-                      }
-                      className="text-lg"
-                    >
-                      ➕
-                    </button>
-                    <Popover
-                      open={openEmojiPicker}
-                      anchorEl={emojiPickerAnchorEl}
-                      onClose={handleEmojiPickerClose}
-                      anchorOrigin={{
-                        vertical: "top",
-                        horizontal: "right",
-                      }}
-                      transformOrigin={{
-                        vertical: "bottom",
-                        horizontal: "left",
-                      }}
-                      PaperProps={{
-                        style: {
-                          maxHeight: "400px",
-                          maxWidth: "300px",
-                          overflowY: "auto",
-                          backgroundColor: "#1f1f1f",
-                          color: "#fff",
-                        },
-                      }}
-                    >
-                      <EmojiPicker
-                        onEmojiClick={(emoji) =>
-                          addNewEmoji(reflection.id, emoji)
-                        }
-                      />
-                    </Popover>
-                  </div>
                 )}
               </>
             ) : (
@@ -262,10 +143,13 @@ const ReflectColumn = ({ sentiment, emoji, retrospectiveId, step }) => {
                   value={newReflection}
                   onChange={(e) => setNewReflection(e.target.value)}
                   placeholder={`What made you feel ${sentiment.toLowerCase()}?`}
-                  className="w-full px-2 py-1 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white resize-none h-8"
+                  className="w-full px-2 py-1 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white resize-none"
                   rows={1}
                   required
                 />
+                {selectedGif && (
+                  <img src={selectedGif} alt="GIF" className="mt-2 rounded" />
+                )}
                 <div className="flex justify-between items-center">
                   <div className="flex space-x-1">
                     <button
