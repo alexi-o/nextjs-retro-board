@@ -4,15 +4,18 @@ import GifPicker from "@/components/GifPicker";
 import Popover from "@mui/material/Popover";
 import IconButton from "@mui/material/IconButton";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
+import EmojiPicker from "emoji-picker-react";
 
 const ReflectColumn = ({ sentiment, emoji, retrospectiveId, step }) => {
   const [reflections, setReflections] = useState([]);
   const [userId, setUserId] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newReflection, setNewReflection] = useState("");
-  const [showGifPicker, setShowGifPicker] = useState(null);
+  const [showGifPicker, setShowGifPicker] = useState(false);
   const [selectedGif, setSelectedGif] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [votes, setVotes] = useState({});
+  const [emojiPickerAnchorEl, setEmojiPickerAnchorEl] = useState(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -23,19 +26,24 @@ const ReflectColumn = ({ sentiment, emoji, retrospectiveId, step }) => {
     fetchUser();
   }, [supabase]);
 
-  const fetchReflections = async () => {
-    const { data } = await supabase
-      .from("reflections")
-      .select("*")
-      .eq("retrospective_id", retrospectiveId)
-      .eq("sentiment", sentiment);
-
-    setReflections(data);
-  };
-
   useEffect(() => {
+    const fetchReflections = async () => {
+      const { data } = await supabase
+        .from("reflections")
+        .select("*")
+        .eq("retrospective_id", retrospectiveId)
+        .eq("sentiment", sentiment);
+
+      setReflections(data);
+      const initialVotes = data.reduce((acc, reflection) => {
+        acc[reflection.id] = {};
+        return acc;
+      }, {});
+      setVotes(initialVotes);
+    };
+
     fetchReflections();
-  }, [retrospectiveId, sentiment, step]);
+  }, [retrospectiveId, sentiment, step]); // Ensure 'step' is included in the dependency array
 
   const handleAddReflection = async (e) => {
     e.preventDefault();
@@ -58,8 +66,18 @@ const ReflectColumn = ({ sentiment, emoji, retrospectiveId, step }) => {
       setSelectedGif(null);
       setIsDialogOpen(false);
       setShowGifPicker(false);
-      fetchReflections();
+      fetchReflections(); // Fetch reflections again after adding a new one
     }
+  };
+
+  const handleVote = (reflectionId, emoji) => {
+    setVotes((prevVotes) => ({
+      ...prevVotes,
+      [reflectionId]: {
+        ...prevVotes[reflectionId],
+        [emoji]: (prevVotes[reflectionId][emoji] || 0) + 1,
+      },
+    }));
   };
 
   const handleClick = (event) => {
@@ -70,7 +88,21 @@ const ReflectColumn = ({ sentiment, emoji, retrospectiveId, step }) => {
     setAnchorEl(null);
   };
 
+  const handleEmojiPickerClick = (event) => {
+    setEmojiPickerAnchorEl(event.currentTarget);
+  };
+
+  const handleEmojiPickerClose = () => {
+    setEmojiPickerAnchorEl(null);
+  };
+
+  const addNewEmoji = (reflectionId, emoji) => {
+    handleVote(reflectionId, emoji.emoji);
+    handleEmojiPickerClose();
+  };
+
   const open = Boolean(anchorEl);
+  const openEmojiPicker = Boolean(emojiPickerAnchorEl);
 
   const getSubheading = (sentiment) => {
     switch (sentiment) {
@@ -108,6 +140,55 @@ const ReflectColumn = ({ sentiment, emoji, retrospectiveId, step }) => {
                     alt="GIF"
                     className="mt-2 rounded"
                   />
+                )}
+                {step === "vote" && (
+                  <div className="flex items-center space-x-2 mt-2">
+                    {Object.keys(votes[reflection.id] || {}).map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={() => handleVote(reflection.id, emoji)}
+                        className="text-lg"
+                      >
+                        {emoji} {votes[reflection.id][emoji]}
+                      </button>
+                    ))}
+                    <button
+                      onClick={(event) =>
+                        handleEmojiPickerClick(event, reflection.id)
+                      }
+                      className="text-lg"
+                    >
+                      ➕
+                    </button>
+                    <Popover
+                      open={openEmojiPicker}
+                      anchorEl={emojiPickerAnchorEl}
+                      onClose={handleEmojiPickerClose}
+                      anchorOrigin={{
+                        vertical: "top",
+                        horizontal: "right",
+                      }}
+                      transformOrigin={{
+                        vertical: "bottom",
+                        horizontal: "left",
+                      }}
+                      PaperProps={{
+                        style: {
+                          maxHeight: "400px",
+                          maxWidth: "300px",
+                          overflowY: "auto",
+                          backgroundColor: "#1f1f1f",
+                          color: "#fff",
+                        },
+                      }}
+                    >
+                      <EmojiPicker
+                        onEmojiClick={(emoji) =>
+                          addNewEmoji(reflection.id, emoji)
+                        }
+                      />
+                    </Popover>
+                  </div>
                 )}
               </>
             ) : (

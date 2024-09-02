@@ -53,19 +53,19 @@ export default function RetrospectivePage() {
             sentiment="Glad"
             emoji="😊"
             retrospectiveId={retrospectiveId}
-            step="reflect"
+            step={currentStep}
           />
           <ReflectColumn
             sentiment="Bad"
             emoji="😢"
             retrospectiveId={retrospectiveId}
-            step="reflect"
+            step={currentStep}
           />
           <ReflectColumn
             sentiment="Mad"
             emoji="😡"
             retrospectiveId={retrospectiveId}
-            step="reflect"
+            step={currentStep}
           />
         </div>
       </div>
